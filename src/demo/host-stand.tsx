@@ -359,7 +359,7 @@ export function HostStand({ today }: { today: string }) {
         setTarget("floor")
         const result = await step(`Considering ${list.map((n) => `table ${n}`).join(", ")}: ${String(input.why ?? "")}`, "floor", [], true)
         await sleep(700)
-        return result
+        return result.ok ? { ok: true, note: "Highlighted. Now carry on: select the party and tables, then seat." } : result
       }
       case "set_service":
         return step(`Switch to ${String(input.service)}`, "controls", [
