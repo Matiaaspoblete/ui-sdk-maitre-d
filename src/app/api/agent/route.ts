@@ -70,12 +70,15 @@ function systemPrompt(floor: FloorContext): string {
     )
     .join("\n")
   const waitlist = floor.waitlist
-    .map((w) => `- ${w.name} | party of ${w.size} | waiting ${w.waiting} min (quoted ${w.quoted}) | ${list(w.notes)}`)
+    .map(
+      (w) =>
+        `- ${w.name} | party of ${w.size} | waiting ${w.waiting} min (quoted ${w.quoted}) | ${list(w.notes)} | best free now: ${w.best.join(", ") || "none"}`
+    )
     .join("\n")
   const reservations = floor.reservations
     .map(
       (r) =>
-        `- ${r.time} ${r.name} | party of ${r.size} | ${r.status}${r.tables.length ? ` on table ${r.tables.join(" + ")}` : " (no table)"} | ${list(r.notes)}`
+        `- ${r.time} ${r.name} | party of ${r.size} | ${r.status}${r.tables.length ? ` on table ${r.tables.join(" + ")}` : " (no table)"} | ${list(r.notes)}${r.status === "booked" || r.status === "unassigned" ? ` | other tables that work at ${r.time}: ${r.best.join(", ") || "none"}` : ""}`
     )
     .join("\n")
 
@@ -90,7 +93,10 @@ Rules:
 - "Free table N for HH:MM" means: if a party is seated there and finishing, set it to cleaning so it's ready for the reservation at that time; if another reservation blocks it, move that one.
 - "Move" a reservation = select_party, select_tables, seat with mode "assign". Walk-ins on the waitlist are seated with mode "seat".
 - For "who's been waiting longest", first call sort_waitlist with "longest" so the host sees the order change.
-- "Best free table" = free (not reserved, seated or cleaning) table that fits the party with the fewest empty seats and matches its notes.
+- "Best free table" = the first "best free now" option of that party (the stand ranks valid tables by fewest empty seats, then notes). Options like "7+8" mean both tables.
+- A request may name a party by size or note instead of name ("the party of 8", "the birthday"): use the matching waitlist party or reservation.
+- When moving a reservation to a zone, pick from its "other tables that work" in that zone.
+- In your answer, say what changed, e.g. "Moved Moldovan from table 6 to table 14 on the terrace."
 - If a tool returns an error, fix the cause (e.g. pick another table) and retry once; otherwise explain briefly.
 - Never invent parties or tables. Refuse anything outside running this floor.
 

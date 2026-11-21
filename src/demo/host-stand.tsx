@@ -66,6 +66,7 @@ import {
   formatTime,
   nextReservation,
   serviceKey,
+  suggestTables,
   tableDef,
   tableId,
   turnMinutes,
@@ -295,6 +296,10 @@ export function HostStand({ today }: { today: string }) {
       waiting: Math.max(0, clock - w.joinedAt),
       quoted: w.quoted,
       notes: w.notes.slice(0, 6),
+      best:
+        state.mode === "live"
+          ? suggestTables(state, { kind: "waitlist", id: w.id, name: w.name, size: w.size, notes: w.notes, start: clock }, clock, "seat")
+          : [],
     })),
     reservations: reservations.slice(0, 30).map((r) => ({
       name: r.name,
@@ -303,6 +308,10 @@ export function HostStand({ today }: { today: string }) {
       tables: r.tables,
       status: r.status,
       notes: r.notes.slice(0, 6),
+      best:
+        r.status === "booked" || r.status === "unassigned"
+          ? suggestTables(state, { kind: "reservation", id: r.id, name: r.name, size: r.size, notes: r.notes, start: r.time }, clock, "assign")
+          : [],
     })),
   }
   const contextRef = useRef(context)
@@ -405,6 +414,7 @@ export function HostStand({ today }: { today: string }) {
           return { ok: false, error: result.error ?? check.problems.join(" ") }
         }
         const button = mode === "seat" ? "Seat now" : "Assign table"
+        const previous = st.reservations.find((r) => r.id === s.id)?.tables ?? []
         const done = await step(
           mode === "seat"
             ? `Seat ${s.name} (${s.size}) at table ${chosen.join(" + ")}`
@@ -421,7 +431,7 @@ export function HostStand({ today }: { today: string }) {
               note:
                 mode === "seat"
                   ? `${s.name} (${s.size}) is seated at table ${chosen.join(" + ")}. If that was the request, answer now.`
-                  : `${s.name} now holds table ${chosen.join(" + ")} at ${formatTime(s.start)}. If that was the request, answer now.`,
+                  : `${s.name} moved from table ${previous.join(" + ") || "none"} to table ${chosen.join(" + ")} for ${formatTime(s.start)}. If that was the request, answer now.`,
             }
           : done
       }
@@ -444,6 +454,7 @@ export function HostStand({ today }: { today: string }) {
     const w = window as unknown as { __runTool?: typeof runTool; __snapshot?: () => unknown }
     w.__runTool = runTool
     w.__snapshot = () => getAgent().snapshot()
+    ;(w as { __context?: () => unknown }).__context = () => contextRef.current
   })
 
   // ---- Render ---------------------------------------------------------------

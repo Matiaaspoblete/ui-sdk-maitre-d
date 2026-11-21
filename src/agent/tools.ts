@@ -83,7 +83,9 @@ export const floorContextSchema = z.object({
     )
     .max(30),
   waitlist: z
-    .array(z.object({ name, size: z.number(), waiting: z.number(), quoted: z.number(), notes }))
+    .array(
+      z.object({ name, size: z.number(), waiting: z.number(), quoted: z.number(), notes, best: z.array(z.string().max(8)).max(3) })
+    )
     .max(20),
   reservations: z
     .array(
@@ -94,6 +96,7 @@ export const floorContextSchema = z.object({
         tables: z.array(z.number()).max(4),
         status: z.enum(["booked", "seated", "unassigned", "done"]),
         notes,
+        best: z.array(z.string().max(8)).max(3),
       })
     )
     .max(30),

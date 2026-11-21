@@ -337,3 +337,30 @@ export function checkSeating(
   }
   return { ok: problems.length === 0, problems, warnings, seats }
 }
+
+function preferenceMisses(party: Seating, tables: number[]): number {
+  const defs = tables.map((n) => tableDef(n)).filter((d): d is TableDef => Boolean(d))
+  const notes = party.notes.join(" ").toLowerCase()
+  let misses = 0
+  const has = (test: (d: TableDef) => boolean) => defs.some(test)
+  if (/window/.test(notes) && !has((d) => d.zone === "Window")) misses++
+  if (/accessible|wheelchair|step-free/.test(notes) && !defs.every((d) => d.features.includes("step-free"))) misses += 3
+  if (/birthday|terrace/.test(notes) && !has((d) => d.zone === "Terrace")) misses++
+  if (/high chair/.test(notes) && has((d) => d.zone === "Bar")) misses += 2
+  return misses
+}
+
+/** Up to three valid table options for a party, best first: fewest empty seats, then notes. */
+export function suggestTables(state: ServiceState, party: Seating, clock: number, mode: "seat" | "assign"): string[] {
+  const options: number[][] = [...TABLES.map((t) => [t.n]), ...MERGES.map((pair) => [...pair])]
+  return options
+    .map((tables) => ({ tables, check: checkSeating(state, party, tables, clock, mode) }))
+    .filter((option) => option.check.ok)
+    .map((option) => ({
+      label: option.tables.join("+"),
+      score: (option.check.seats - party.size) + 3 * preferenceMisses(party, option.tables) + (option.tables.length - 1),
+    }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((option) => option.label)
+}
