@@ -1,7 +1,9 @@
 // Mock restaurant for one service at a time. Everything lives on the client.
 
 export const RESTAURANT = {
-  name: "Atelier Nord",
+  name: "Livada",
+  kind: "Kitchen & Wine Bar",
+  tagline: "Orchard cooking from the Transylvanian hills",
   city: "Cluj-Napoca",
   timeZone: "Europe/Bucharest",
 } as const
@@ -106,6 +108,9 @@ export const SERVICE_HOURS: Record<ServiceName, [number, number]> = {
   lunch: [12 * 60, 15 * 60],
   dinner: [18 * 60, 23 * 60],
 }
+
+/** A private event booked in the cellar room tonight (not on the main floor). */
+export const PRIVATE_EVENT = { title: "Private event", room: "Cellar Room", host: "Lungu engagement dinner", guests: 24, time: 19 * 60 + 30 }
 
 /** Tonight's dinner runs on a simulated clock that starts at 20:15 and ticks in real time. */
 export const SERVICE_CLOCK_START = 20 * 60 + 15

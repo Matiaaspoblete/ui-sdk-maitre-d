@@ -1,6 +1,6 @@
 "use client"
 
-import { BotIcon, CheckIcon, EyeIcon, LoaderIcon, XIcon } from "lucide-react"
+import { CheckIcon, EyeIcon, LoaderIcon, NotebookPenIcon, XIcon } from "lucide-react"
 
 export type AgentCall = { ref: string; action: string; args?: unknown[] }
 
@@ -30,17 +30,20 @@ export function AgentPanel({
   return (
     <section className="md-card md-agent" aria-label="Agent steps" data-agent-hidden="">
       <div className="md-card-head">
-        <span className="md-card-title">
-          <BotIcon aria-hidden="true" size={15} />
-          agent.act()
-        </span>
+        <h2 className="md-card-title">
+          <NotebookPenIcon aria-hidden="true" size={15} />
+          Service log
+        </h2>
         <span className="md-pill" data-live={running || undefined}>
-          {running ? "running" : log.length ? "idle" : "ready"}
+          {running ? "Working" : log.length ? "Done" : "Ready"}
         </span>
       </div>
       {log.length === 0 ? (
         <div className="md-agent-empty">
-          <p className="md-muted md-small">Allow-list: the bridge refuses anything else.</p>
+          <p className="md-muted md-small">
+            Every step the maître d&apos; takes appears here, with the UI SDK call it made. It may only use these
+            controls:
+          </p>
           <ul className="md-allow">
             {allowed.map((rule) => (
               <li key={rule.label} className="md-mono md-small">

@@ -37,16 +37,17 @@ import {
 import { Tabs, TabsIndicator, TabsList, TabsTab } from "@ui-sdk/react/tabs"
 import {
   AlertTriangleIcon,
+  CalendarHeartIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
+  HourglassIcon,
   MoonIcon,
   SunIcon,
   UsersIcon,
-  UtensilsCrossedIcon,
 } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import type { AgentToolName, FloorContext } from "@/agent/tools"
@@ -54,8 +55,10 @@ import { AgentPanel, type AgentCall, type LogEntry } from "./agent-panel"
 import { ALLOWED_ACTIONS, getAgent } from "./agent"
 import { AskHost, type ToolResult } from "./ask-host"
 import {
+  PRIVATE_EVENT,
   RESTAURANT,
   SERVICE_CLOCK_START,
+  SERVICE_HOURS,
   TABLES,
   addDays,
   checkSeating,
@@ -75,6 +78,7 @@ import {
   type ServiceState,
 } from "./floor-data"
 import { FloorPlan, Legend } from "./floor-plan"
+import { NoteTag } from "./note-tag"
 
 type Sort = "recent" | "longest" | "size"
 type Target = "controls" | "floor" | "waitlist" | "reservations" | "inspector"
@@ -90,7 +94,7 @@ const SORT_OPTIONS: { value: Sort; label: string }[] = [
   { value: "size", label: "Largest party" },
 ]
 const STATUS_OPTIONS = [
-  { value: "free", label: "Free" },
+  { value: "free", label: "Available" },
   { value: "cleaning", label: "Cleaning" },
   { value: "seated", label: "Seated" },
 ]
@@ -474,23 +478,64 @@ export function HostStand({ today }: { today: string }) {
     const p = state.tables[t.n]?.party
     return sum + (p && p.group[0] === t.n ? p.size : 0)
   }, 0)
+  const booked = state.reservations.filter((r) => r.status !== "done").reduce((sum, r) => sum + r.size, 0)
+  const isTonight = date === today && service === "dinner"
+  const longDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
+    new Date(`${date}T12:00:00Z`)
+  )
+  const [open, close] = SERVICE_HOURS[service]
 
   return (
     <div className="md-stand">
-      <section className="md-hero">
-        <div>
-          <p className="md-eyebrow">
-            <span className="md-pill">UI SDK beta</span>
-            <span className="md-muted">
-              {RESTAURANT.name} · {RESTAURANT.city} · mock data
-            </span>
+      <section className="md-tonight" aria-labelledby="md-tonight-title">
+        <div className="md-tonight-main">
+          <p className="md-eyebrow">{date === today ? "Tonight" : "Planning"}</p>
+          <h1 id="md-tonight-title" className="md-display">
+            {longDate}
+          </h1>
+          <p className="md-tonight-sub">
+            {service === "dinner" ? "Dinner" : "Lunch"} service · {formatTime(open)}–{formatTime(close)} ·{" "}
+            {state.mode === "live" ? (
+              <span className="md-live">
+                <span className="md-live-dot" aria-hidden="true" /> In service
+              </span>
+            ) : state.mode === "ended" ? (
+              "Service ended"
+            ) : (
+              "Bookings open"
+            )}
           </p>
-          <h1 className="md-title">The maître d&apos; is an agent.</h1>
-          <p className="md-lede">
-            A host stand built with Vercel&apos;s UI SDK. You can run the floor with the keyboard; the agent runs the
-            same components through <code>createAgent</code>, step by step, where you can see it.
-          </p>
+          {isTonight && (
+            <p className="md-event">
+              <CalendarHeartIcon aria-hidden="true" size={14} />
+              <span>
+                <strong>{PRIVATE_EVENT.title}</strong> · {PRIVATE_EVENT.room} · {PRIVATE_EVENT.host} ·{" "}
+                {PRIVATE_EVENT.guests} guests from {formatTime(PRIVATE_EVENT.time)}
+              </span>
+            </p>
+          )}
         </div>
+        <dl className="md-stats">
+          <div>
+            <dt>Covers seated</dt>
+            <dd>{covers}</dd>
+          </div>
+          <div>
+            <dt>Booked</dt>
+            <dd>{booked}</dd>
+          </div>
+          <div>
+            <dt>Waiting</dt>
+            <dd>{state.waitlist.length}</dd>
+          </div>
+          <div>
+            <dt>Tables open</dt>
+            <dd>
+              {counts.free}
+              <span className="md-stats-of">/{TABLES.length}</span>
+            </dd>
+          </div>
+        </dl>
       </section>
 
       <AskHost
@@ -523,42 +568,41 @@ export function HostStand({ today }: { today: string }) {
           </TabsList>
         </Tabs>
 
-        <div className="md-field">
-          <DatePicker
-            value={date}
-            onValueChange={(value) => typeof value === "string" && changeDate(value)}
-            min={today}
-            max={addDays(today, 13)}
-            locale="en-GB"
-          >
-            <div className="md-input-row">
-              <DatePickerInput className="md-input" aria-label="Date" />
-              <DatePickerTrigger className="md-icon-button" aria-label="Open calendar">
-                <CalendarIcon aria-hidden="true" size={14} />
-              </DatePickerTrigger>
+        <DatePicker
+          value={date}
+          onValueChange={(value) => typeof value === "string" && changeDate(value)}
+          min={today}
+          max={addDays(today, 13)}
+          locale="en-GB"
+        >
+          <div className="md-input-row">
+            <CalendarIcon aria-hidden="true" size={14} className="md-input-icon" />
+            <DatePickerInput className="md-input" aria-label="Date" />
+            <DatePickerTrigger className="md-icon-button" aria-label="Open calendar">
+              <ChevronDownIcon aria-hidden="true" size={14} />
+            </DatePickerTrigger>
+          </div>
+          <DatePickerContent className="md-popup md-calendar" sideOffset={6} align="start">
+            <div className="md-calendar-head">
+              <CalendarPrevious className="md-icon-button" aria-label="Previous month">
+                <ChevronLeftIcon aria-hidden="true" size={14} />
+              </CalendarPrevious>
+              <CalendarHeading className="md-calendar-title" />
+              <CalendarNext className="md-icon-button" aria-label="Next month">
+                <ChevronRightIcon aria-hidden="true" size={14} />
+              </CalendarNext>
             </div>
-            <DatePickerContent className="md-popup md-calendar" sideOffset={6} align="start">
-              <div className="md-calendar-head">
-                <CalendarPrevious className="md-icon-button" aria-label="Previous month">
-                  <ChevronLeftIcon aria-hidden="true" size={14} />
-                </CalendarPrevious>
-                <CalendarHeading className="md-calendar-title" />
-                <CalendarNext className="md-icon-button" aria-label="Next month">
-                  <ChevronRightIcon aria-hidden="true" size={14} />
-                </CalendarNext>
-              </div>
-              <CalendarGrid className="md-calendar-grid">
-                <CalendarWeekdays>{(index) => <CalendarWeekday index={index} className="md-weekday" />}</CalendarWeekdays>
-                <CalendarWeeks>{(cell) => <CalendarDay value={cell.date} className="md-day" />}</CalendarWeeks>
-              </CalendarGrid>
-            </DatePickerContent>
-          </DatePicker>
-        </div>
+            <CalendarGrid className="md-calendar-grid">
+              <CalendarWeekdays>{(index) => <CalendarWeekday index={index} className="md-weekday" />}</CalendarWeekdays>
+              <CalendarWeeks>{(cell) => <CalendarDay value={cell.date} className="md-day" />}</CalendarWeeks>
+            </CalendarGrid>
+          </DatePickerContent>
+        </DatePicker>
 
-        <div className="md-field md-field-inline">
+        <div className="md-field-inline">
           <Select value={partySize} onValueChange={(value) => setPartySize((value as string | null) ?? "any")} items={SIZE_OPTIONS}>
             <SelectLabel className="md-label">Party size</SelectLabel>
-            <SelectTrigger className="md-input md-select">
+            <SelectTrigger className="md-select">
               <UsersIcon aria-hidden="true" size={14} />
               <SelectValue />
               <ChevronDownIcon aria-hidden="true" size={14} />
@@ -576,11 +620,11 @@ export function HostStand({ today }: { today: string }) {
           </Select>
         </div>
 
-        <p className="md-clock md-mono" aria-live="off">
+        <p className="md-clock" aria-live="off">
           <ClockIcon aria-hidden="true" size={14} />
           {state.mode === "live" ? (
             <>
-              {formatTime(clock)} <span className="md-muted">service clock</span>
+              <span className="md-num">{formatTime(clock)}</span> <span className="md-muted">service clock</span>
             </>
           ) : state.mode === "ended" ? (
             <span className="md-muted">Service ended</span>
@@ -592,17 +636,20 @@ export function HostStand({ today }: { today: string }) {
 
       <div className="md-grid">
         <div className="md-main">
-          <section className="md-card md-floor-card" aria-labelledby="md-floor-title" data-agent-target={target === "floor" || undefined}>
+          <section
+            className="md-card md-floor-card"
+            aria-labelledby="md-floor-title"
+            data-agent-target={target === "floor" || undefined}
+          >
             <div className="md-card-head">
               <h2 id="md-floor-title" className="md-card-title">
-                <UtensilsCrossedIcon aria-hidden="true" size={15} />
-                Floor · {formatDate(date)} · {service === "dinner" ? "Dinner" : "Lunch"}
+                The dining room
               </h2>
-              <span className="md-muted md-small md-mono">
-                {counts.free} free · {counts.reserved} held · {counts.seated} seated · {covers} covers
+              <span className="md-muted md-small md-num">
+                {counts.free} open · {counts.reserved} held · {counts.seated} seated · {counts.cleaning} resetting
               </span>
             </div>
-            <div className="md-floor-scroll">
+            <div className="md-floor-wrap">
               <FloorPlan
                 state={state}
                 clock={clock}
@@ -615,27 +662,27 @@ export function HostStand({ today }: { today: string }) {
             </div>
             <div className="md-floor-foot">
               <Legend />
-              <span className="md-muted md-small">Arrows move, Space selects, ⌘/Ctrl adds a table.</span>
+              <span className="md-muted md-small md-hint">Arrow keys move, Space selects, ⌘/Ctrl adds a second table.</span>
             </div>
           </section>
 
           <section className="md-card md-inspector" aria-label="Selection" data-agent-target={target === "inspector" || undefined}>
             <div className="md-inspector-body">
-              <div>
+              <div className="md-inspect">
                 <p className="md-label">Party</p>
-                <p className="md-strong">
+                <p className="md-inspect-value">
                   {seating ? (
                     <>
                       {seating.name} <span className="md-muted">· {seating.size} guests</span>
                     </>
                   ) : (
-                    <span className="md-muted">Pick from the waitlist or reservations</span>
+                    <span className="md-muted">Choose from the waitlist or the book</span>
                   )}
                 </p>
               </div>
-              <div>
-                <p className="md-label">Tables</p>
-                <p className="md-strong">
+              <div className="md-inspect">
+                <p className="md-label">Table</p>
+                <p className="md-inspect-value">
                   {tables.length ? (
                     <>
                       {tables.join(" + ")}{" "}
@@ -644,21 +691,19 @@ export function HostStand({ today }: { today: string }) {
                       </span>
                     </>
                   ) : (
-                    <span className="md-muted">Pick on the floor plan</span>
+                    <span className="md-muted">Choose on the floor plan</span>
                   )}
                 </p>
               </div>
               {single !== undefined && (
-                <div className="md-field">
+                <div className="md-inspect">
                   <Select
                     value={singleState?.status ?? "free"}
-                    onValueChange={(value) =>
-                      (value === "free" || value === "cleaning") && setTableStatus(single, value)
-                    }
+                    onValueChange={(value) => (value === "free" || value === "cleaning") && setTableStatus(single, value)}
                     items={STATUS_OPTIONS}
                   >
                     <SelectLabel className="md-label">Table status</SelectLabel>
-                    <SelectTrigger className="md-input md-select md-select-sm">
+                    <SelectTrigger className="md-select md-select-sm">
                       <SelectValue />
                       <ChevronDownIcon aria-hidden="true" size={14} />
                     </SelectTrigger>
@@ -683,10 +728,11 @@ export function HostStand({ today }: { today: string }) {
               </DialogTrigger>
               <DialogBackdrop className="md-backdrop" />
               <DialogContent className="md-dialog">
+                <p className="md-eyebrow">{seating?.kind === "reservation" ? "Reservation" : "Walk-in"}</p>
                 <DialogTitle className="md-dialog-title">Confirm seating</DialogTitle>
                 <DialogDescription className="md-muted">
                   {seating
-                    ? `${seating.name}, party of ${seating.size}${seating.kind === "reservation" ? `, booked ${formatTime(seating.start)}` : ", walk-in"}`
+                    ? `${seating.name}, party of ${seating.size}${seating.kind === "reservation" ? `, booked for ${formatTime(seating.start)}` : ", walk-in from the waitlist"}`
                     : "Nothing selected"}
                 </DialogDescription>
                 {seating && (
@@ -696,7 +742,7 @@ export function HostStand({ today }: { today: string }) {
                         <span key={d.n} className="md-dialog-table">
                           <strong>{d.n}</strong>
                           <span>
-                            {d.seats} · {d.zone}
+                            {d.seats} seats · {d.zone}
                           </span>
                         </span>
                       ))}
@@ -706,11 +752,11 @@ export function HostStand({ today }: { today: string }) {
                       {tables.length === 2 ? " · pushed together" : ""}
                     </p>
                     {seating.notes.length > 0 && (
-                      <ul className="md-notes">
+                      <p className="md-tags">
                         {seating.notes.map((note) => (
-                          <li key={note}>{note}</li>
+                          <NoteTag key={note} note={note} />
                         ))}
-                      </ul>
+                      </p>
                     )}
                     {problems.map((problem) => (
                       <p key={problem} className="md-warn" data-tone="red">
@@ -728,13 +774,9 @@ export function HostStand({ today }: { today: string }) {
                   </div>
                 )}
                 <div className="md-dialog-actions">
-                  <DialogClose className="md-button md-button-secondary">Cancel</DialogClose>
+                  <DialogClose className="md-button md-button-ghost">Cancel</DialogClose>
                   {seating?.kind === "reservation" && (
-                    <Button
-                      className="md-button md-button-secondary"
-                      disabled={!assignCheck?.ok}
-                      onClick={() => applySeating("assign")}
-                    >
+                    <Button className="md-button md-button-secondary" disabled={!assignCheck?.ok} onClick={() => applySeating("assign")}>
                       Assign table
                     </Button>
                   )}
@@ -755,7 +797,7 @@ export function HostStand({ today }: { today: string }) {
               </h2>
               <Select value={sort} onValueChange={(value) => value && setSort(value as Sort)} items={SORT_OPTIONS}>
                 <SelectLabel className="md-sr">Sort by</SelectLabel>
-                <SelectTrigger className="md-input md-select md-select-sm">
+                <SelectTrigger className="md-select md-select-sm">
                   <SelectValue />
                   <ChevronDownIcon aria-hidden="true" size={13} />
                 </SelectTrigger>
@@ -772,9 +814,7 @@ export function HostStand({ today }: { today: string }) {
               </Select>
             </div>
             {waitlist.length === 0 ? (
-              <p className="md-empty">
-                {state.mode === "live" ? "Nobody waiting." : "The waitlist opens during service."}
-              </p>
+              <p className="md-empty">{state.mode === "live" ? "Nobody waiting." : "The waitlist opens during service."}</p>
             ) : (
               <div ref={waitRef}>
                 <Listbox
@@ -787,32 +827,32 @@ export function HostStand({ today }: { today: string }) {
                     const waited = Math.max(0, clock - w.joinedAt)
                     const late = waited > w.quoted
                     return (
-                      <ListboxItem key={w.id} value={w.id} label={w.name} className="md-row" data-flip={w.id}>
+                      <ListboxItem key={w.id} value={w.id} label={w.name} className="md-row md-guest" data-flip={w.id}>
                         <span className="md-sr">
                           {`${w.name}, party of ${w.size}, waiting ${waited} min, quoted ${w.quoted}${w.notes.length ? `, ${w.notes.join(", ")}` : ""}`}
                         </span>
-                        <span className="md-row-main" aria-hidden="true">
-                          <span className="md-strong">{w.name}</span>
-                          <span className="md-size">
-                            <UsersIcon aria-hidden="true" size={12} />
-                            {w.size}
-                          </span>
+                        <span className="md-badge" aria-hidden="true">
+                          {w.size}
                         </span>
-                        <span className="md-row-meta" aria-hidden="true">
-                          <span className="md-mono" data-late={late || undefined}>
-                            {waited} min
+                        <span className="md-guest-body" aria-hidden="true">
+                          <span className="md-guest-head">
+                            <span className="md-guest-name">{w.name}</span>
+                            <span className="md-wait" data-late={late || undefined}>
+                              <HourglassIcon size={11} />
+                              {waited}′<span className="md-muted"> / {w.quoted}′</span>
+                            </span>
                           </span>
-                          <span className="md-muted"> / {w.quoted} quoted</span>
+                          <span className="md-meter">
+                            <span style={{ width: `${Math.min(100, (waited / Math.max(1, w.quoted)) * 100)}%` }} data-late={late || undefined} />
+                          </span>
+                          {w.notes.length > 0 && (
+                            <span className="md-tags">
+                              {w.notes.map((note) => (
+                                <NoteTag key={note} note={note} />
+                              ))}
+                            </span>
+                          )}
                         </span>
-                        {w.notes.length > 0 && (
-                          <span className="md-tags" aria-hidden="true">
-                            {w.notes.map((note) => (
-                              <span key={note} className="md-tag">
-                                {note}
-                              </span>
-                            ))}
-                          </span>
-                        )}
                       </ListboxItem>
                     )
                   })}
@@ -824,9 +864,9 @@ export function HostStand({ today }: { today: string }) {
           <section className="md-card" aria-labelledby="md-res-title" data-agent-target={target === "reservations" || undefined}>
             <div className="md-card-head">
               <h2 id="md-res-title" className="md-card-title">
-                Reservations <span className="md-count">{reservations.length}</span>
+                The book <span className="md-count">{reservations.length}</span>
               </h2>
-              <span className="md-muted md-small">{service === "dinner" ? "Dinner" : "Lunch"}</span>
+              <span className="md-muted md-small">{service === "dinner" ? "Dinner" : "Lunch"} reservations</span>
             </div>
             <Listbox
               aria-label="Reservations"
@@ -841,22 +881,34 @@ export function HostStand({ today }: { today: string }) {
                       r.status === "unassigned" ? "needs a table" : `${r.status} table ${r.tables.join(" and ")}`
                     }${r.notes.length ? `, ${r.notes.join(", ")}` : ""}`}
                   </span>
-                  <span className="md-res-time md-mono" aria-hidden="true">{formatTime(r.time)}</span>
+                  <span className="md-res-time" aria-hidden="true">
+                    {formatTime(r.time)}
+                  </span>
                   <span className="md-res-dot" aria-hidden="true" />
                   <span className="md-res-body" aria-hidden="true">
-                    <span className="md-row-main">
-                      <span className="md-strong">{r.name}</span>
-                      <span className="md-size">
-                        <UsersIcon aria-hidden="true" size={12} />
-                        {r.size}
+                    <span className="md-guest-head">
+                      <span className="md-guest-name">{r.name}</span>
+                      <span className="md-badge md-badge-sm">{r.size}</span>
+                    </span>
+                    <span className="md-res-meta">
+                      <span className="md-status" data-status={r.status}>
+                        {r.status === "unassigned"
+                          ? "Needs a table"
+                          : r.status === "seated"
+                            ? "Seated"
+                            : r.status === "done"
+                              ? "Departed"
+                              : "Confirmed"}
                       </span>
+                      {r.tables.length > 0 && <span className="md-muted">Table {r.tables.join(" + ")}</span>}
                     </span>
-                    <span className="md-row-meta md-muted">
-                      {r.status === "unassigned"
-                        ? "Needs a table"
-                        : `${r.status === "seated" ? "Seated" : r.status === "done" ? "Done" : "Table"} ${r.tables.join(" + ")}`}
-                      {r.notes.length > 0 ? ` · ${r.notes.join(", ")}` : ""}
-                    </span>
+                    {r.notes.length > 0 && (
+                      <span className="md-tags">
+                        {r.notes.map((note) => (
+                          <NoteTag key={note} note={note} />
+                        ))}
+                      </span>
+                    )}
                   </span>
                 </ListboxItem>
               ))}

@@ -13,6 +13,6 @@ export function Stand() {
     () => todayIn(RESTAURANT.timeZone),
     () => null
   )
-  if (!today) return <p className="md-loading">Setting the floor…</p>
+  if (!today) return <p className="md-loading">Setting the tables…</p>
   return <HostStand today={today} />
 }

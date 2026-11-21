@@ -19,6 +19,13 @@ import {
   type TableStatus,
 } from "./floor-data"
 
+const ZONE_LABEL: Record<string, string> = {
+  Window: "Window",
+  Main: "Dining room",
+  Bar: "Bar",
+  Terrace: "Terrace",
+}
+
 const pct = (value: number, of: number) => `${(value / of) * 100}%`
 
 function box(x: number, y: number, w: number, h: number): CSSProperties {
@@ -30,16 +37,16 @@ function box(x: number, y: number, w: number, h: number): CSSProperties {
   }
 }
 
-/** Chair positions as percentages of the table's own box. */
-function chairs(table: TableDef): { left: string; top: string }[] {
-  const out: { left: string; top: string }[] = []
-  const along = (count: number, fixed: "top" | "bottom" | "left" | "right") => {
+/** Chair positions as percentages of the table's own box, rotated to face the table. */
+function chairs(table: TableDef): { left: string; top: string; rotate: string }[] {
+  const out: { left: string; top: string; rotate: string }[] = []
+  const along = (count: number, side: "top" | "bottom" | "left" | "right") => {
     for (let i = 0; i < count; i++) {
       const t = `${((i + 1) / (count + 1)) * 100}%`
-      if (fixed === "top") out.push({ left: t, top: "-17%" })
-      if (fixed === "bottom") out.push({ left: t, top: "117%" })
-      if (fixed === "left") out.push({ left: "-17%", top: t })
-      if (fixed === "right") out.push({ left: "117%", top: t })
+      if (side === "top") out.push({ left: t, top: "-16%", rotate: "0deg" })
+      if (side === "bottom") out.push({ left: t, top: "116%", rotate: "180deg" })
+      if (side === "left") out.push({ left: "-16%", top: t, rotate: "-90deg" })
+      if (side === "right") out.push({ left: "116%", top: t, rotate: "90deg" })
     }
   }
   const tall = table.h > table.w
@@ -69,7 +76,7 @@ function chairs(table: TableDef): { left: string; top: string }[] {
 }
 
 const STATUS_LABEL: Record<TableStatus, string> = {
-  free: "Free",
+  free: "Available",
   reserved: "Reserved",
   seated: "Seated",
   cleaning: "Cleaning",
@@ -117,11 +124,23 @@ export function FloorPlan({
             data-zone={zone.zone}
             style={box(zone.x + zone.w / 2, zone.y + zone.h / 2, zone.w, zone.h)}
           >
-            <span>{zone.zone}</span>
+            <span>{ZONE_LABEL[zone.zone]}</span>
           </div>
         ))}
-        <div className="md-bar-counter" style={box(795, 62, 330, 34)} />
-        <div className="md-window-glass" style={box(26, 320, 4, 560)} />
+        <div className="md-bar-counter" style={box(795, 66, 330, 40)}>
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <span key={i} className="md-stool" style={{ left: `${8 + i * 14}%` }} />
+          ))}
+        </div>
+        <div className="md-window-glass" style={box(24, 320, 6, 560)} />
+        {[
+          [962, 330],
+          [962, 604],
+          [628, 604],
+          [628, 470],
+        ].map(([x = 0, y = 0]) => (
+          <div key={`${x}-${y}`} className="md-planter" style={box(x, y, 26, 26)} />
+        ))}
         <div className="md-door" style={box(410, 628, 90, 6)}>
           <span>Entrance</span>
         </div>
@@ -192,9 +211,14 @@ export function FloorPlan({
               <span className="md-sr">{description}</span>
               <span className="md-chairs" aria-hidden="true">
                 {chairs(table).map((chair, index) => (
-                  <span key={index} className="md-chair" style={chair} />
+                  <span
+                    key={index}
+                    className="md-chair"
+                    style={{ left: chair.left, top: chair.top, rotate: chair.rotate }}
+                  />
                 ))}
               </span>
+              <span className="md-table-top" aria-hidden="true" />
               <span className="md-table-n" aria-hidden="true">
                 {table.n}
               </span>
@@ -214,10 +238,18 @@ export function Legend() {
     <ul className="md-legend" aria-label="Legend">
       {(Object.keys(STATUS_LABEL) as TableStatus[]).map((status) => (
         <li key={status}>
-          <span className="md-legend-dot" data-status={status} aria-hidden="true" />
+          <span className="md-legend-swatch" data-status={status} aria-hidden="true" />
           {STATUS_LABEL[status]}
         </li>
       ))}
+      <li>
+        <span className="md-legend-swatch" data-status="merged" aria-hidden="true" />
+        Pushed together
+      </li>
+      <li>
+        <span className="md-legend-swatch" data-status="considered" aria-hidden="true" />
+        Maître d&apos; considering
+      </li>
     </ul>
   )
 }

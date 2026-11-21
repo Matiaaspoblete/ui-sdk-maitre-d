@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from "ai"
-import { ArrowUpIcon, LoaderIcon, SparklesIcon, SquareIcon } from "lucide-react"
+import { ArrowUpIcon, ConciergeBellIcon, LoaderIcon, SquareIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import type { AgentToolName, FloorContext } from "@/agent/tools"
 
@@ -97,7 +97,18 @@ export function AskHost({
   }
 
   return (
-    <section className="md-ask" aria-label="Ask the host" data-agent-hidden="">
+    <section className="md-ask" aria-labelledby="md-ask-title" data-agent-hidden="">
+      <div className="md-ask-head">
+        <span className="md-ask-bell" aria-hidden="true">
+          <ConciergeBellIcon size={16} />
+        </span>
+        <div>
+          <h2 id="md-ask-title" className="md-ask-title">
+            Ask the maître d&apos;
+          </h2>
+          <p className="md-muted md-small">Say what you need. It works the floor for you, one visible step at a time.</p>
+        </div>
+      </div>
       <form
         className="md-ask-form"
         onSubmit={(event) => {
@@ -105,12 +116,11 @@ export function AskHost({
           ask(input)
         }}
       >
-        <SparklesIcon aria-hidden="true" size={15} className="md-ask-icon" />
         <input
           className="md-ask-input"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask the host: “seat the Okafors by the window”"
+          placeholder="“Seat the Okafors by the window”"
           maxLength={400}
           aria-label="Ask the host"
         />
@@ -140,12 +150,7 @@ export function AskHost({
           </p>
         ) : answer ? (
           <p className="md-ask-answer">{answer}</p>
-        ) : (
-          <p className="md-muted md-small">
-            A real model through Vercel AI Gateway. It works only through the allow-listed UI SDK controls, and you
-            can watch every step.
-          </p>
-        )}
+        ) : null}
       </div>
     </section>
   )

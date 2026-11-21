@@ -1,19 +1,26 @@
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google"
 import "./globals.css"
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin", "latin-ext"] })
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+})
+const sans = Source_Sans_3({ variable: "--font-sans", subsets: ["latin", "latin-ext"] })
 
 export const metadata: Metadata = {
-  title: "Maître d' · a host stand an agent can run · UI SDK demo",
+  title: "Livada · Host stand",
   description:
-    "A restaurant floor plan built with Vercel's UI SDK. An AI agent seats parties, merges tables and moves reservations by operating the real components.",
+    "The host stand of Livada, a fictional restaurant in Cluj-Napoca, where an AI maître d' seats parties, merges tables and moves reservations by working the real controls.",
 }
+
+export const viewport: Viewport = { themeColor: "#1f3a2e" }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>{children}</body>
     </html>
   )

@@ -12,7 +12,7 @@ Built with Vercel's [UI SDK](https://ui-sdk.dev) (`@ui-sdk/react` 0.1.0-beta.9),
 
 ## What's on screen
 
-Atelier Nord is a fictional restaurant in Cluj-Napoca. Tonight's dinner has 18 tables (2, 4, 6 and 8 seats) in four zones: Window, Main, Terrace and Bar. Each table is free, reserved, seated or cleaning. Every control is a UI SDK component, usable with the keyboard:
+Livada ("orchard" in Romanian) is a fictional kitchen and wine bar in Cluj-Napoca. The page is styled as its host stand: Cormorant Garamond and Source Sans 3, deep green, oxblood, linen and brass, a wood-floored dining room with a bar and a stone terrace. Tonight's dinner has 18 tables (2, 4, 6 and 8 seats) in four zones: Window, Main, Terrace and Bar. Each table is free, reserved, seated or cleaning. Every control is a UI SDK component, usable with the keyboard:
 
 | Control | UI SDK component | Agent action |
 | --- | --- | --- |
