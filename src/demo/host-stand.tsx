@@ -405,7 +405,7 @@ export function HostStand({ today }: { today: string }) {
           return { ok: false, error: result.error ?? check.problems.join(" ") }
         }
         const button = mode === "seat" ? "Seat now" : "Assign table"
-        return step(
+        const done = await step(
           mode === "seat"
             ? `Seat ${s.name} (${s.size}) at table ${chosen.join(" + ")}`
             : `Move ${s.name} to table ${chosen.join(" + ")} for ${formatTime(s.start)}`,
@@ -415,15 +415,25 @@ export function HostStand({ today }: { today: string }) {
             { ref: "Confirm seating", action: "press", args: [button] },
           ]
         )
+        return done.ok
+          ? {
+              ok: true,
+              note:
+                mode === "seat"
+                  ? `${s.name} (${s.size}) is seated at table ${chosen.join(" + ")}. If that was the request, answer now.`
+                  : `${s.name} now holds table ${chosen.join(" + ")} at ${formatTime(s.start)}. If that was the request, answer now.`,
+            }
+          : done
       }
       case "set_table_status": {
         const n = Number(input.table)
         if (!tableDef(n)) return fail(`Table ${n}`, "That table isn't on this floor.")
         const status = input.status === "cleaning" ? "cleaning" : "free"
-        return step(`Mark table ${n} ${status === "free" ? "free" : "for cleaning"}`, "inspector", [
+        const done = await step(`Mark table ${n} ${status === "free" ? "free" : "for cleaning"}`, "inspector", [
           { ref: "Floor plan", action: "setValue", args: [[tableId(n)]] },
           { ref: "Table status", action: "setValue", args: [status] },
         ])
+        return done.ok ? { ok: true, note: `Table ${n} is now ${status}.` } : done
       }
     }
   }
