@@ -414,3 +414,6 @@
   }
   .md-table[data-considered] { box-shadow: 0 0 0 3px var(--blue); }
 }
+@media (max-width: 640px) {
+  .md-card-head { flex-wrap: wrap; row-gap: 2px; padding-block: 8px; }
+}

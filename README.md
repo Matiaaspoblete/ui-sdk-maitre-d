@@ -4,6 +4,10 @@ A restaurant host stand that an AI agent runs by operating the real UI, not by c
 
 Ask "Seat the party of 6 by the window and free table 12 for 21:00" and you watch the agent work: candidate tables pulse on the floor plan, the waitlist reorders, the party gets selected, the **Confirm seating** dialog opens and is confirmed, and every step lands in an `agent.act()` trail with the exact UI SDK call it made.
 
+Live at **https://ui-sdk-maitre-d.vercel.app**.
+
+![Floor plan](shots/01-floor.png)
+
 Built with Vercel's [UI SDK](https://ui-sdk.dev) (`@ui-sdk/react` 0.1.0-beta.9), the [AI SDK](https://ai-sdk.dev) and [AI Gateway](https://vercel.com/ai-gateway). Sister demo of [ui-sdk-flights](https://github.com/Matiaaspoblete/ui-sdk-flights).
 
 ## What's on screen
